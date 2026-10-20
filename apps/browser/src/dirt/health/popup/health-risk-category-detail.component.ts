@@ -17,6 +17,8 @@ import {
   VaultHealthReportStatus,
 } from "@bitwarden/common/dirt/vault-health/models";
 import { VaultHealthReportService } from "@bitwarden/common/dirt/vault-health/services";
+import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
+import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 import { ChangeLoginPasswordService } from "@bitwarden/common/vault/abstractions/change-login-password.service";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
@@ -98,6 +100,12 @@ export class HealthRiskCategoryDetailComponent {
   readonly dialogService = inject(DialogService);
   private readonly healthScanService = inject(HealthScanService);
   private readonly compactModeService = inject(CompactModeService);
+  private readonly configService = inject(ConfigService);
+
+  protected readonly exclusionsEnabled = toSignal(
+    this.configService.getFeatureFlag$(FeatureFlag.HealthReportExclusions),
+    { initialValue: false },
+  );
 
   readonly category = toSignal<RiskCategory>(
     this.route.params.pipe(map((params) => params["category"])),
@@ -199,7 +207,9 @@ export class HealthRiskCategoryDetailComponent {
 
   // TODO: update implementation to use actual excluded items from VaultHealthReportService when available instead of all rows
   protected readonly excludedItems = computed(() => this.rows().map((row) => row.cipher));
-  protected readonly hasExcludedItems = computed(() => this.excludedItems().length > 0);
+  protected readonly hasExcludedItems = computed(
+    () => this.exclusionsEnabled() && this.excludedItems().length > 0,
+  );
 
   protected readonly trackByCipherId = (
     _: number,

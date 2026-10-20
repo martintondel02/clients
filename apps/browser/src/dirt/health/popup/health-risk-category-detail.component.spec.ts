@@ -15,6 +15,7 @@ import {
   VaultHealthReportView,
 } from "@bitwarden/common/dirt/vault-health/models";
 import { VaultHealthReportService } from "@bitwarden/common/dirt/vault-health/services";
+import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
@@ -401,6 +402,7 @@ describe("HealthRiskCategoryDetailComponent", () => {
         { provide: PasswordRepromptService, useValue: passwordRepromptService },
         { provide: DialogService, useValue: dialogService },
         { provide: I18nService, useValue: { t: (key: string) => key } },
+        { provide: ConfigService, useValue: { getFeatureFlag$: () => of(true) } },
         { provide: PlatformUtilsService, useValue: platformUtilsService },
         { provide: LogService, useValue: logService },
         { provide: CompactModeService, useValue: compactModeService },
