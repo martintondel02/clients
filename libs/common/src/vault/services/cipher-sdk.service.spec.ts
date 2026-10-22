@@ -75,6 +75,7 @@ describe("DefaultCipherSdkService", () => {
       admin: jest.fn().mockReturnValue(mockAdminSdk),
     };
     mockAttachmentsAdminSdk = {
+      create_attachment: jest.fn(),
       delete_attachment: jest.fn().mockResolvedValue(undefined),
       get_attachment_download_url: jest.fn(),
     };
@@ -958,7 +959,6 @@ describe("DefaultCipherSdkService", () => {
       fileName: "2.encryptedFileName" as unknown as EncString,
       fileSize: 65,
       lastKnownRevisionDate: "2024-05-31T11:20:58.456Z",
-      asAdmin: false,
     };
     const created = {
       attachmentId: "newatt9999999999999999999999999",
@@ -974,14 +974,39 @@ describe("DefaultCipherSdkService", () => {
       expect(sdkService.userClient$).toHaveBeenCalledWith(userId);
       expect(mockVaultSdk.attachments).toHaveBeenCalled();
       expect(mockAttachmentsSdk.create_attachment).toHaveBeenCalledWith(testCipherId, request);
+      expect(mockAttachmentsAdminSdk.create_attachment).not.toHaveBeenCalled();
       expect(result).toBe(created);
     });
 
-    it("throws and logs when the SDK throws", async () => {
+    it("delegates to the admin SDK method when asAdmin is true", async () => {
+      mockAttachmentsAdminSdk.create_attachment.mockResolvedValue(created);
+
+      const result = await cipherSdkService.createAttachment(testCipherId, request, userId, true);
+
+      expect(sdkService.userClient$).toHaveBeenCalledWith(userId);
+      expect(mockVaultSdk.attachments).toHaveBeenCalled();
+      expect(mockAttachmentsSdk.admin).toHaveBeenCalled();
+      expect(mockAttachmentsAdminSdk.create_attachment).toHaveBeenCalledWith(testCipherId, request);
+      expect(mockAttachmentsSdk.create_attachment).not.toHaveBeenCalled();
+      expect(result).toBe(created);
+    });
+
+    it("throws and logs when the SDK throws on the user path", async () => {
       mockAttachmentsSdk.create_attachment.mockRejectedValue(new Error("SDK error"));
 
       await expect(
         cipherSdkService.createAttachment(testCipherId, request, userId),
+      ).rejects.toThrow();
+      expect(logService.error).toHaveBeenCalledWith(
+        expect.stringContaining("Failed to create attachment"),
+      );
+    });
+
+    it("throws and logs when the SDK throws on the admin path", async () => {
+      mockAttachmentsAdminSdk.create_attachment.mockRejectedValue(new Error("SDK error"));
+
+      await expect(
+        cipherSdkService.createAttachment(testCipherId, request, userId, true),
       ).rejects.toThrow();
       expect(logService.error).toHaveBeenCalledWith(
         expect.stringContaining("Failed to create attachment"),
@@ -1245,7 +1270,7 @@ describe("DefaultCipherSdkService", () => {
 
       expect(sdkService.userClient$).toHaveBeenCalledWith(userId);
       expect(mockVaultSdk.ciphers).toHaveBeenCalled();
-      expect(mockCiphersSdk.update_collection).toHaveBeenCalledWith(cipherId, collectionIds, false);
+      expect(mockCiphersSdk.update_collection).toHaveBeenCalledWith(cipherId, collectionIds);
       expect(mockCiphersSdk.admin).not.toHaveBeenCalled();
       expect(result).toBeInstanceOf(CipherView);
     });
